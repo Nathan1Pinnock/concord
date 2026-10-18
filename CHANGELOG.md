@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.3] - 2026-10-18
+
+### Bug Fixes
+
+- _(tui)_ Honor animate_previews for animated avatars (#394) in [#394](https://github.com/chojs23/concord/pull/394) by @pujitha24
+
+### Documentation
+
+- _(readme)_ Document Windows archive installation (#391) in [#391](https://github.com/chojs23/concord/pull/391) by @mvanhorn
+
+### Features
+
+- _(tui)_ Click a reaction chip to toggle your own reaction (#396) in [#396](https://github.com/chojs23/concord/pull/396) by @rropleka
+- _(discord)_ Add group DM leaving and close dm (#398) in [#398](https://github.com/chojs23/concord/pull/398) by @chojs23
+
+### New Contributors
+
+- @rropleka made their first contribution in [#396](https://github.com/chojs23/concord/pull/396)
+- @pujitha24 made their first contribution in [#394](https://github.com/chojs23/concord/pull/394)
+
 ## [2.6.2] - 2026-10-15
 
 ### Bug Fixes
