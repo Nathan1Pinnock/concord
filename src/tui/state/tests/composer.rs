@@ -542,6 +542,38 @@ fn slow_mode_locks_stay_active_when_safety_is_disabled() {
 }
 
 #[test]
+fn slow_mode_in_another_channel_leaves_the_composer_open() {
+    for rate_limited in [false, true] {
+        let mut state = state_with_writable_channel();
+        state.discord.cache.set_safety_checks_enabled(false);
+        let other_channel = Id::new(999);
+        state.start_composer();
+        state.push_composer_char('h');
+        assert!(state.is_composing());
+
+        state.push_effect(if rate_limited {
+            AppEvent::MessageSendRateLimited {
+                channel_id: other_channel,
+                retry_after_millis: 30_000,
+            }
+        } else {
+            AppEvent::MessageSendCooldownStarted {
+                channel_id: other_channel,
+                duration_millis: 30_000,
+            }
+        });
+
+        assert!(
+            state.slow_mode_remaining_seconds(other_channel).is_some(),
+            "rate_limited={rate_limited}"
+        );
+        assert!(state.is_composing(), "rate_limited={rate_limited}");
+        assert_eq!(state.composer_lock(), None, "rate_limited={rate_limited}");
+        assert_eq!(state.composer_input(), "h", "rate_limited={rate_limited}");
+    }
+}
+
+#[test]
 fn empty_guild_channel_locks_until_a_message_exists() {
     let mut state = guild_state_with_overwrites(Vec::new(), None);
 

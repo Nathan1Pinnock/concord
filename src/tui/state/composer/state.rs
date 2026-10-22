@@ -515,7 +515,9 @@ impl DashboardState {
             .entry(channel_id)
             .and_modify(|existing| *existing = (*existing).max(deadline))
             .or_insert(deadline);
-        self.close_composer();
+        // No close here: the deadline can belong to any channel, and
+        // close_composer_for_safety_lock already closes the composer after
+        // the event when the selected channel is the one now in slow mode.
     }
 
     pub(in crate::tui::state) fn slow_mode_remaining_seconds(
