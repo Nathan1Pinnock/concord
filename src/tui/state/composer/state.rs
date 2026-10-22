@@ -195,7 +195,7 @@ impl DashboardState {
         }
         self.cancel_composer_translation();
         self.cancel_clipboard_paste();
-        self.reset_mention_picker_state();
+        self.close_composer_pickers();
         self.composer.reply_target_message_id = Some(message_id);
         self.composer.edit_target_message = None;
         self.composer.composer_active = true;
@@ -727,7 +727,7 @@ impl DashboardState {
         self.cancel_composer_translation();
         self.composer.reply_target_message_id = None;
         self.cancel_clipboard_paste();
-        self.reset_mention_picker_state();
+        self.close_composer_pickers();
     }
 
     pub fn clear_composer_input(&mut self) {
@@ -1632,15 +1632,22 @@ impl DashboardState {
             .collect()
     }
 
-    /// Closes the picker without inserting anything. The literal `@query`
-    /// stays in the composer.
-    fn reset_mention_picker_state(&mut self) {
+    /// Closes the pickers without inserting anything. The literal `@query`
+    /// stays in the composer, and so do the mentions, emoji and command
+    /// already picked into the kept text.
+    fn close_composer_pickers(&mut self) {
         self.composer.composer_picker.close();
         self.composer.emoji_completion.close();
+        self.composer.application_command_autocomplete = None;
+    }
+
+    /// Closes the pickers and forgets what was picked, for when the composer
+    /// text is cleared or replaced and the recorded ranges no longer apply.
+    fn reset_mention_picker_state(&mut self) {
+        self.close_composer_pickers();
         self.composer.composer_mention_completions.clear();
         self.composer.composer_emoji_completions.clear();
         self.composer.composer_selected_command_identity = None;
-        self.composer.application_command_autocomplete = None;
     }
 
     fn close_composer_mention_query(&mut self) {

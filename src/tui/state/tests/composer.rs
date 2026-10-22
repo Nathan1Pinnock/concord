@@ -2287,6 +2287,66 @@ fn confirm_inserts_display_name_and_submit_expands_to_wire_format() {
 }
 
 #[test]
+fn picked_mentions_still_expand_after_the_composer_is_closed_and_reopened() {
+    let mut state = state_with_writable_channel_and_members();
+    state.start_composer();
+    state.push_composer_char('@');
+    state.push_composer_char('s');
+    assert!(state.confirm_composer_mention());
+    state.push_composer_char('h');
+    state.push_composer_char('i');
+
+    state.close_composer();
+    state.start_composer();
+
+    assert_eq!(state.composer_input(), "@Sally hi");
+    assert_send_message_eq!(
+        state.submit_composer(),
+        Some(AppCommand::SendMessage {
+            channel_id: Id::new(2),
+            nonce: Id::new(1),
+            content: "<@20> hi".to_owned(),
+            reply_to: None,
+            attachments: Vec::new(),
+        })
+    );
+}
+
+#[test]
+fn picked_mentions_still_expand_after_starting_a_reply() {
+    let mut state = state_with_writable_channel_and_members();
+    state.push_event(AppEvent::GuildRoleUpsert {
+        guild_id: Id::new(1),
+        role: role_info(
+            Id::new(1),
+            "@everyone",
+            PERM_VIEW_CHANNEL | PERM_SEND_MESSAGES | PERM_READ_MESSAGE_HISTORY,
+        ),
+    });
+    state.push_event(latest_history_loaded(
+        Id::new(2),
+        vec![message_info(Id::new(2), 1)],
+    ));
+    state.focus_pane(FocusPane::Messages);
+    state.start_composer();
+    state.push_composer_char('@');
+    state.push_composer_char('s');
+    assert!(state.confirm_composer_mention());
+
+    state.start_reply_composer();
+
+    match state.submit_composer() {
+        Some(AppCommand::SendMessage {
+            content, reply_to, ..
+        }) => {
+            assert_eq!(content, "<@20>");
+            assert_eq!(reply_to.map(|reply| reply.message_id), Some(Id::new(1)));
+        }
+        other => panic!("expected a reply to be sent, got {other:?}"),
+    }
+}
+
+#[test]
 fn confirm_mention_in_middle_keeps_trailing_text() {
     let mut state = state_with_writable_channel_and_members();
     state.start_composer();
