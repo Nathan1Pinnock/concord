@@ -360,7 +360,13 @@ impl KeyMap {
                     action.name()
                 ));
             }
-            let index = match node.children.iter().position(|child| child.key == *key) {
+            // `J` and `<S-j>` are different chords for the same key press, and
+            // lookup matches by event, so they have to share a node here too.
+            let index = match node
+                .children
+                .iter()
+                .position(|child| key_chords_match_same_event(child.key, *key))
+            {
                 Some(index) => index,
                 None => {
                     node.children.push(KeyMapChild {

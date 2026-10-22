@@ -1536,3 +1536,43 @@ fn klipy_composer_shortcut_is_remappable() {
         ComposerAction::Ignore
     );
 }
+
+#[test]
+fn shifted_letter_spellings_conflict_in_the_dashboard_keymap() {
+    let options = KeymapOptions {
+        mappings: [
+            ("OpenDebugPanel".to_owned(), KeymapBinding::one("J")),
+            ("OpenOptions".to_owned(), KeymapBinding::one("<S-j>")),
+        ]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+
+    let error = KeyBindings::try_from_options(&options)
+        .expect_err("`J` and `<S-j>` are the same key press");
+    assert!(error.contains("conflicts with"), "{error}");
+}
+
+#[test]
+fn one_action_can_be_bound_to_both_shifted_letter_spellings() {
+    let options = KeymapOptions {
+        mappings: [(
+            "OpenDebugPanel".to_owned(),
+            KeymapBinding {
+                keys: vec!["J".to_owned(), "<S-j>".to_owned()],
+                description: None,
+            },
+        )]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+
+    let key_bindings =
+        KeyBindings::try_from_options(&options).expect("same action under both spellings");
+    assert_eq!(
+        key_bindings.keymap_lookup_root_key(KeyEvent::new(KeyCode::Char('J'), KeyModifiers::SHIFT)),
+        Some(KeyMapLookup::Action(UiAction::OpenDebugPanel))
+    );
+}
