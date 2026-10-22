@@ -1,3 +1,4 @@
+use std::ops::Range;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Local, NaiveDate};
@@ -98,6 +99,14 @@ fn discord_timestamp_matches(
             if closes_markdown_code_block(content) {
                 in_code_block = false;
             }
+        } else if let Some((_, rest_start)) = one_line_code_fence(content) {
+            collect_discord_timestamps_outside_inline_code(
+                &mut matches,
+                &content[rest_start..],
+                line_start.saturating_add(rest_start),
+                hour_format_24,
+                now,
+            );
         } else if content.trim_start().starts_with("```") {
             in_code_block = true;
         } else {
@@ -114,6 +123,21 @@ fn discord_timestamp_matches(
             .saturating_add(newline.len());
     }
     matches
+}
+
+/// A code block that opens and closes on the same line, like ```` ```hi``` ````.
+/// Returns the byte range of the code and where the rest of the line starts.
+pub(in crate::tui::message) fn one_line_code_fence(line: &str) -> Option<(Range<usize>, usize)> {
+    let fence_start = line.len() - line.trim_start().len();
+    if !line[fence_start..].starts_with("```") {
+        return None;
+    }
+    let code_start = fence_start + "```".len();
+    let code_end = code_start + line[code_start..].find("```")?;
+    if line[code_start..code_end].trim().is_empty() {
+        return None;
+    }
+    Some((code_start..code_end, code_end + "```".len()))
 }
 
 fn closes_markdown_code_block(value: &str) -> bool {
@@ -519,6 +543,26 @@ mod tests {
             assert_eq!(rendered.highlights.len(), 1, "{markup}");
             assert_eq!(rendered.highlights[0].kind, TextHighlightKind::Timestamp);
         }
+    }
+
+    #[test]
+    fn one_line_code_fence_keeps_its_code_and_ends_on_the_same_line() {
+        let input = concat!(
+            "```<t:9940:R>``` after <t:9940:R>
+",
+            "next <t:9940:R>"
+        );
+
+        let rendered = render_at(input, true, 10_000);
+
+        assert_eq!(
+            rendered.text,
+            concat!(
+                "```<t:9940:R>``` after 1 minute ago
+",
+                "next 1 minute ago"
+            )
+        );
     }
 
     #[test]

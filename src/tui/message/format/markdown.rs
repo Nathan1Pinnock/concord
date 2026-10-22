@@ -5,6 +5,7 @@ use ratatui::style::{Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+use crate::tui::message::time::one_line_code_fence;
 use crate::tui::state::DashboardState;
 use crate::tui::text::{InlineEmojiSlot, RenderedText, TextHighlight, truncate_display_width};
 use crate::tui::theme;
@@ -68,6 +69,25 @@ pub(super) fn wrap_markdown_message_lines_with_loaded_custom_emoji_urls(
                 code_block_fence = None;
             } else {
                 code_block_lines.push(rendered_line);
+            }
+        } else if let Some((code, rest_start)) = one_line_code_fence(&rendered_line.text) {
+            let code_line = rendered_text_slice(&rendered_line, code.start, code.end);
+            lines.extend(wrap_code_block_lines_and_highlight(
+                state,
+                vec![code_line],
+                width,
+                None,
+            ));
+            let rest = &rendered_line.text[rest_start..];
+            let rest_start = rest_start + (rest.len() - rest.trim_start().len());
+            if rest_start < rendered_line.text.len() {
+                let rest_line =
+                    rendered_text_slice(&rendered_line, rest_start, rendered_line.text.len());
+                let rest_line = rendered_text_with_loaded_custom_emoji_placeholders(
+                    rest_line,
+                    loaded_custom_emoji_urls,
+                );
+                lines.extend(wrap_markdown_message_line(rest_line, width, style));
             }
         } else if let Some(label) = markdown_code_fence_label(&rendered_line.text) {
             in_code_block = true;

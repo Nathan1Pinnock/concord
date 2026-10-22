@@ -1111,6 +1111,35 @@ fn message_content_applies_supported_markdown_formatting() {
 }
 
 #[test]
+fn one_line_code_fence_ends_on_its_own_line() {
+    let message = message_with_content(Some(
+        "```echo hi```
+and some normal text"
+            .to_owned(),
+    ));
+    let lines = format_message_content_lines(&message, &DashboardState::new(), 80);
+    assert_eq!(
+        line_texts(&lines),
+        vec![
+            "╭─────────╮",
+            "│ echo hi │",
+            "╰─────────╯",
+            "and some normal text",
+        ]
+    );
+}
+
+#[test]
+fn text_after_a_one_line_code_fence_is_ordinary_text() {
+    let message = message_with_content(Some("```echo hi``` and then *this*".to_owned()));
+    let lines = format_message_content_lines(&message, &DashboardState::new(), 80);
+    assert_eq!(
+        line_texts(&lines),
+        vec!["╭─────────╮", "│ echo hi │", "╰─────────╯", "and then this"]
+    );
+}
+
+#[test]
 fn fenced_code_block_preserves_space_indentation() {
     let message = message_with_content(Some("```\nfunc f() {\n    return\n}\n```".to_owned()));
     let lines = format_message_content_lines(&message, &DashboardState::new(), 80);
