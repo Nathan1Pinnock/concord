@@ -385,6 +385,52 @@ fn mouse_click_outside_reply_composer_preserves_draft_and_clears_reply_target() 
 }
 
 #[test]
+fn clicking_inside_an_open_edit_composer_keeps_the_edit() {
+    let mut state = state_with_own_message();
+    state.focus_pane(FocusPane::Messages);
+    handle_key(&mut state, char_key('e'));
+    assert!(state.composer_is_editing_message());
+    handle_key(&mut state, char_key('!'));
+    let (column, row) = composer_point();
+
+    assert!(handle_mouse(
+        &mut state,
+        mouse(MouseEventKind::Down(MouseButton::Left), column, row),
+        dashboard_area(),
+    ));
+
+    assert!(state.is_composing());
+    assert!(state.composer_is_editing_message());
+    assert!(matches!(
+        handle_key(&mut state, key(KeyCode::Enter)),
+        Some(AppCommand::EditMessage { message_id, .. }) if message_id == Id::new(1)
+    ));
+}
+
+#[test]
+fn clicking_inside_an_open_reply_composer_keeps_the_reply() {
+    let mut state = state_with_messages(1);
+    state.focus_pane(FocusPane::Messages);
+    handle_key(&mut state, char_key('R'));
+    handle_key(&mut state, char_key('a'));
+    handle_key(&mut state, char_key('b'));
+    handle_key(&mut state, key(KeyCode::Left));
+    assert!(state.reply_target_message_state().is_some());
+    let (column, row) = composer_point();
+
+    assert!(handle_mouse(
+        &mut state,
+        mouse(MouseEventKind::Down(MouseButton::Left), column, row),
+        dashboard_area(),
+    ));
+    handle_key(&mut state, char_key('x'));
+
+    assert!(state.is_composing());
+    assert!(state.reply_target_message_state().is_some());
+    assert_eq!(state.composer_input(), "axb");
+}
+
+#[test]
 fn mouse_click_outside_composer_blurs_and_selects_clicked_row() {
     let mut state = state_with_channel_tree();
     state.focus_pane(FocusPane::Channels);

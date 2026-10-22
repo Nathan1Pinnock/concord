@@ -204,7 +204,11 @@ fn handle_click(
 ) -> MouseEventResult {
     match target {
         InteractionTarget::Composer => {
-            state.start_composer();
+            // Restarting an open composer clears its edit and reply targets,
+            // which turns an edit into a new message.
+            if !state.is_composing() {
+                state.start_composer();
+            }
             MouseEventResult::handled(None)
         }
         InteractionTarget::ModalSurface | InteractionTarget::ModalBackdrop => {
